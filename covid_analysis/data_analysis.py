@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from .data_utils import (
-    process_covid_data,
+    preprocess_covid_data,
     extract_matching_population_data,
 )
 
@@ -119,12 +119,11 @@ def calculate_rolling_average(
     return data.rolling(num_days, axis=1).mean()
 
 
-def process_and_plot_data(
+def process_covid_data(
     covid_data: pd.DataFrame,
     get_daily_change: bool = True,
     get_rolling_average: bool = True,
     normalise_by_population: bool = True,
-    num_countries_to_plot: int = 10,
     num_rolling_average_days: int = 7,
     num_presort_countries: Optional[int] = None,
 ):
@@ -142,8 +141,6 @@ def process_and_plot_data(
         Whether to get a rolling average (which smooths out the data)
     normalise_by_population
         Whether to normalise the data per country by the population count
-    num_countries_to_plot
-        The number of countries to plot
     num_rolling_average_days
         The number of days for which the rolling average should be calculated
     num_presort_countries
@@ -151,7 +148,7 @@ def process_and_plot_data(
         data by the population count. This avoids the distortion of the data by smaller
         countries.
     """
-    covid_data = process_covid_data(covid_data)
+    covid_data = preprocess_covid_data(covid_data)
 
     if get_daily_change:
         covid_data = calculate_daily_changes(covid_data)
@@ -164,7 +161,6 @@ def process_and_plot_data(
         population_data = extract_matching_population_data(covid_data)
         covid_data = normalise_by_population_count(covid_data, population_data)
     covid_data = sort_data_ascending(covid_data)
-    plot_data_per_country(covid_data, num_countries_to_plot)
     return covid_data
 
 
@@ -206,7 +202,7 @@ def adjust_for_time_differences(
     country_set
         An optional list of countries that should be displayed
     """
-    covid_data = process_covid_data(covid_data)
+    covid_data = preprocess_covid_data(covid_data)
 
     if get_daily_change:
         covid_data = calculate_daily_changes(covid_data)

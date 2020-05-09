@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import pandas as pd
 
 country_name_mapper = {
@@ -28,6 +30,7 @@ data_to_drop = [
 ]
 
 
+@lru_cache(maxsize=1)
 def fetch_latest_cases_data():
     return pd.read_csv(
         'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19'
@@ -35,6 +38,7 @@ def fetch_latest_cases_data():
     )
 
 
+@lru_cache(maxsize=1)
 def fetch_latest_deaths_data():
     return pd.read_csv(
         'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19'
@@ -42,6 +46,7 @@ def fetch_latest_deaths_data():
     )
 
 
+@lru_cache(maxsize=1)
 def fetch_latest_recovered_data():
     return pd.read_csv(
         'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19'
@@ -49,7 +54,7 @@ def fetch_latest_recovered_data():
     )
 
 
-def process_covid_data(data: pd.DataFrame) -> pd.DataFrame:
+def preprocess_covid_data(data: pd.DataFrame) -> pd.DataFrame:
     """
     Processes the COVID data by removing unnecessary columns, grouping the data by
     country and removing some non-country data (e.g. data for cruise ships)
@@ -70,6 +75,7 @@ def process_covid_data(data: pd.DataFrame) -> pd.DataFrame:
     return grouped_data
 
 
+@lru_cache(maxsize=1)
 def fetch_population_data() -> pd.DataFrame:
     """
     Reads and processes the World Bank population data. Processing the data involves
