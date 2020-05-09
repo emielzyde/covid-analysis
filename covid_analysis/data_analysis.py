@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+import inflect
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -8,6 +9,9 @@ from .data_utils import (
     preprocess_covid_data,
     extract_matching_population_data,
 )
+from .plotting_utils import construct_y_axis_title
+
+inflect_engine = inflect.engine()
 
 
 def normalise_by_population_count(
@@ -167,6 +171,7 @@ def process_covid_data(
 def adjust_for_time_differences(
     covid_data: pd.DataFrame,
     threshold: int,
+    covid_data_type: str,
     get_daily_change: bool = True,
     get_rolling_average: bool = True,
     normalise_by_population: bool = True,
@@ -187,6 +192,8 @@ def adjust_for_time_differences(
     threshold
         The threshold used to adjust the data. If this is 10, the data will be
         normalised relative to the 10th death/infection/recovery
+    covid_data_type
+        Whether the data relates to deaths, recoveries or infections
     get_daily_change
         Whether to convert the data to daily changes (rather than total figures)
     get_rolling_average
@@ -229,4 +236,16 @@ def adjust_for_time_differences(
             y=country_data,
             name=country,
         ))
+    y_axis_title = construct_y_axis_title(
+        covid_data_type,
+        get_daily_change,
+        get_rolling_average,
+        normalise_by_population,
+        num_rolling_average_days,
+    )
+    singular_covid_data_type = inflect_engine.singular_noun(covid_data_type)
+    figure.update_xaxes(
+        title={'text': f'Days since {threshold}th {singular_covid_data_type}'}
+    )
+    figure.update_yaxes(title={'text': y_axis_title})
     figure.show()

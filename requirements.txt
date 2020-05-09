@@ -1,3 +1,4 @@
+inflect==4.1.0
 numpy==1.18.3
 pandas==1.0.3
 plotly==4.7.0
