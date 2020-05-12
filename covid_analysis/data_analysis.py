@@ -8,6 +8,9 @@ import plotly.graph_objects as go
 from .data_utils import (
     preprocess_covid_data,
     extract_matching_population_data,
+    fetch_latest_deaths_data,
+    fetch_latest_cases_data,
+    fetch_latest_recovered_data,
 )
 from .plotting_utils import construct_y_axis_title
 
@@ -249,3 +252,34 @@ def adjust_for_time_differences(
     )
     figure.update_yaxes(title={'text': y_axis_title})
     figure.show()
+
+
+def get_country_data(country_name: str) -> go.Figure:
+    """
+    Gets the COVID data for a particular country
+
+    Parameters
+    ----------
+    country_name
+        The name of the country for which to return the COVID data
+
+    Returns
+    -------
+    go.Figure
+        A plotly graph of the data for the country
+    """
+    deaths_data = process_covid_data(fetch_latest_deaths_data())
+    cases_data = process_covid_data(fetch_latest_cases_data())
+    recovered_data = process_covid_data(fetch_latest_recovered_data())
+
+    figure = go.Figure()
+    data_labels = ['Deaths', 'Cases', 'Recoveries']
+    covid_datasets = [deaths_data, cases_data, recovered_data]
+    for covid_data, label in zip(covid_datasets, data_labels):
+        country_data = covid_data.loc[country_name].dropna()
+        figure.add_trace(go.Scatter(
+            x=list(country_data.index),
+            y=country_data,
+            name=label,
+        ))
+    return figure

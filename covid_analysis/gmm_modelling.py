@@ -137,7 +137,7 @@ def predict_peaks_using_gmm(
 def plot_peaks(
     plotting_data_list: List[PlottingData],
     y_axis_title: Optional[str] = None,
-):
+) -> go.Figure:
     """
     Plots the peaks and off-peaks identified by the Gaussian mixture model. The
     countries must be plotted in order of the first date in the date list so that the
@@ -150,6 +150,11 @@ def plot_peaks(
         the plot for each country
     y_axis_title
         The title to use for the y-axis of the graph
+
+    Returns
+    -------
+    go.Figure
+        The figure with the peaks and off-peaks identified by the Gaussian mixture model
     """
     figure = go.Figure()
     plot_order_indices = np.argsort([
@@ -174,4 +179,4 @@ def plot_peaks(
     if y_axis_title:
         figure.update_yaxes(title={'text': y_axis_title})
     figure.update_layout(title='Predictions of the peaks in various countries')
-    figure.show()
+    return figure
