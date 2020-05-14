@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>COVID-19 data for {{ country }}</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+</head>
+<body>
+
+    <h3 style="text-align: center">COVID-19 data for {{ country }}</h3>
+    <div class="chart" id="bargraph">
+        <script type="text/javascript">
+            var graphs = {{plot | safe}};
+            Plotly.plot('bargraph', graphs, {});
+        </script>
+    </div>
+
+    <h2>Data format selection</h2>
+    <form action="" method="post" novalidate>
+        {{ form.hidden_tag() }}
+        {% for main_field in fields %}
+            {{ main_field.label }}:
+            {% for subfield in main_field %}
+                <tr>
+                    <td>{{ subfield }}</td>
+                    <td>{{ subfield.label }}</td>
+                </tr>
+            {% endfor %}
+            <br>
+        {% endfor %}
+
+        <p>{{ form.submit() }}</p>
+    </form>
+
+</body>
+{% endblock %}
+
