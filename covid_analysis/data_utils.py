@@ -85,6 +85,7 @@ class LatestCovidData:
     cases_data: pd.DataFrame = preprocess_covid_data(fetch_latest_cases_data())
     deaths_data: pd.DataFrame = preprocess_covid_data(fetch_latest_deaths_data())
     recovered_data: pd.DataFrame = preprocess_covid_data(fetch_latest_recovered_data())
+    active_data: pd.DataFrame = cases_data - (deaths_data + recovered_data)
 
 
 @lru_cache(maxsize=1)
