@@ -18,7 +18,7 @@ def construct_y_axis_title(
     Returns
     -------
     str
-        The y-axis title for the plot 
+        The y-axis title for the plot
     """
     title_string_list = []
     if processing_config.get_daily_change:

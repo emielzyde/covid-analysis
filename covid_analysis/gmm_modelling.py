@@ -96,16 +96,16 @@ def predict_peaks_using_gmm(
         if country_set and country not in country_set:
             continue
         country_data = covid_data.loc[country].dropna()
-        country_data = country_data[country_data > threshold]
-
-        if not len(country_data):
-            continue
-        # Drop the zero values and reshape the values into a 2D numpy array (required
-        # by the GMM models)
-        first_non_zero_index = pd.to_datetime(country_data[country_data != 0].index[0])
-        country_data = (
-            country_data[pd.to_datetime(country_data.index) >= first_non_zero_index]
+        first_threshold_exceeding_index = (
+            pd.to_datetime(country_data[country_data >= threshold].index[0])
         )
+        country_data = country_data[
+            pd.to_datetime(country_data.index) >= first_threshold_exceeding_index
+        ]
+
+        if len(country_data) < 5:
+            continue
+        # Reshape the values into a 2D numpy array (required by the GMM models)
         covid_values = np.reshape(country_data.values, (-1, 1))
         predictions = gmm.fit_predict(covid_values)
 
@@ -178,7 +178,8 @@ def plot_peaks(
             connectgaps=False,
             mode='lines'
         ))
-    if y_axis_title:
-        figure.update_yaxes(title={'text': y_axis_title})
-    figure.update_layout(title='Predictions of the peaks in various countries')
+    figure.update_layout(
+        title=f'Predictions of the peaks in various countries<br>{y_axis_title}',
+    )
+
     return figure

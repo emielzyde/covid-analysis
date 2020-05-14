@@ -88,9 +88,14 @@ def plot_data_per_country(
     """
     figure = go.Figure()
     for country in data.index[:num_countries]:
+        country_data = data.loc[country].dropna()
+        x_values = (
+            list(range(len(country_data.index)))
+            if processing_config.threshold else list(country_data.index)
+        )
         figure.add_trace(go.Scatter(
-            x=list(data.columns),
-            y=data.loc[country],
+            x=x_values,
+            y=country_data,
             name=country,
         ))
     y_axis_title = construct_y_axis_title(
@@ -105,7 +110,7 @@ def plot_data_per_country(
             f'Days since {processing_config.threshold}th {singular_covid_data_type}'
         )
         figure.update_xaxes(title={'text': x_axis_text})
-    figure.update_yaxes(title={'text': y_axis_title})
+    figure.update_layout(title={'text': y_axis_title})
     return figure
 
 
@@ -168,6 +173,8 @@ def process_covid_data(
     processing_config
         A dataclass which holds the config for processing the data
     """
+    if processing_config.threshold:
+        covid_data = covid_data[covid_data >= processing_config.threshold]
     if processing_config.get_daily_change:
         covid_data = calculate_daily_changes(covid_data)
     if processing_config.get_rolling_average:
@@ -179,8 +186,6 @@ def process_covid_data(
         covid_data = (
             sort_data_ascending(covid_data)[:processing_config.num_presort_countries]
         )
-    if processing_config.threshold:
-        covid_data = covid_data[covid_data > processing_config.threshold]
     if processing_config.normalise_by_population:
         population_data = extract_matching_population_data(covid_data)
         covid_data = normalise_by_population_count(covid_data, population_data)
