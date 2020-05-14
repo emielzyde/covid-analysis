@@ -98,6 +98,8 @@ def predict_peaks_using_gmm(
         country_data = covid_data.loc[country].dropna()
         country_data = country_data[country_data > threshold]
 
+        if not len(country_data):
+            continue
         # Drop the zero values and reshape the values into a 2D numpy array (required
         # by the GMM models)
         first_non_zero_index = pd.to_datetime(country_data[country_data != 0].index[0])

@@ -1,16 +1,15 @@
-from typing import List, Optional
+
+from typing import Optional, Union
 
 import inflect
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from .config_utils import ProcessingConfigHolder
 from .data_utils import (
-    preprocess_covid_data,
     extract_matching_population_data,
-    fetch_latest_deaths_data,
-    fetch_latest_cases_data,
-    fetch_latest_recovered_data,
+    LatestCovidData,
 )
 from .plotting_utils import construct_y_axis_title
 
@@ -65,9 +64,13 @@ def sort_data_ascending(data: pd.DataFrame) -> pd.DataFrame:
     return data.sort_values(data.columns[-1], ascending=False)
 
 
-def plot_data_per_country(data: pd.DataFrame, num_countries: int):
+def plot_data_per_country(
+    data: pd.DataFrame,
+    processing_config: ProcessingConfigHolder,
+    num_countries: int = 200,
+) -> go.Figure:
     """
-    Plots the COVID data for each country
+    Gets a plot of the COVID data
 
     Parameters
     ----------
@@ -75,6 +78,13 @@ def plot_data_per_country(data: pd.DataFrame, num_countries: int):
         The processed COVID data
     num_countries
         The number of countries for which the data should be plotted
+    processing_config
+        A dataclass which holds the config for processing the data
+
+    Returns
+    -------
+    go.Figure
+        A plot of the COVID data
     """
     figure = go.Figure()
     for country in data.index[:num_countries]:
@@ -83,56 +93,69 @@ def plot_data_per_country(data: pd.DataFrame, num_countries: int):
             y=data.loc[country],
             name=country,
         ))
-    figure.show()
+    y_axis_title = construct_y_axis_title(
+        processing_config.covid_data_type,
+        processing_config,
+    )
+    if processing_config.threshold:
+        singular_covid_data_type = inflect_engine.singular_noun(
+            processing_config.covid_data_type,
+        )
+        x_axis_text = (
+            f'Days since {processing_config.threshold}th {singular_covid_data_type}'
+        )
+        figure.update_xaxes(title={'text': x_axis_text})
+    figure.update_yaxes(title={'text': y_axis_title})
+    return figure
 
 
-def calculate_daily_changes(data: pd.DataFrame) -> pd.DataFrame:
+def calculate_daily_changes(
+    data: Union[pd.DataFrame, pd.Series],
+) -> Union[pd.DataFrame, pd.Series]:
     """
     Converts the absolute values in a dataframe to daily changes
 
     Parameters
     ----------
     data
-        The dataframe whose values should be converted to daily changes. The indices
-        should be countries and the values should be the figures over time.
+        The dataframe or series whose values should be converted to daily changes.
+        The indices should be countries and the values should be the figures over time.
 
     Returns
     -------
-    pd.DataFrame
-        The dataframe with the values converted to daily changes
+    Union[pd.DataFrame, pd.Series]
+        The dataframe or series with the values converted to daily changes
     """
-    return data - data.shift(1, axis=1)
+    axis = 1 if isinstance(data, pd.DataFrame) else 0
+    return data - data.shift(1, axis=axis)
 
 
 def calculate_rolling_average(
-    data: pd.DataFrame,
+    data: Union[pd.DataFrame, pd.Series],
     num_days: Optional[int] = 7,
-) -> pd.DataFrame:
+) -> Union[pd.DataFrame, pd.Series]:
     """
     Calculates a rolling average from the data
 
     Parameters
     ----------
     data
-        The dataframe whose values should be converted to a rolling average
+        The dataframe or series whose values should be converted to a rolling average
     num_days
         The number of days to use in the rolling average
 
     Returns
     -------
-    pd.DataFrame
-        The dataframe with the values converted to rolling averages
+    Union[pd.DataFrame, pd.Series]
+        The dataframe or series with the values converted to rolling averages
     """
-    return data.rolling(num_days, axis=1).mean()
+    axis = 1 if isinstance(data, pd.DataFrame) else 0
+    return data.rolling(num_days, axis=axis).mean()
 
 
 def process_covid_data(
     covid_data: pd.DataFrame,
-    get_daily_change: bool = True,
-    get_rolling_average: bool = True,
-    normalise_by_population: bool = True,
-    num_rolling_average_days: int = 7,
-    num_presort_countries: Optional[int] = None,
+    processing_config: ProcessingConfigHolder,
 ):
     """
     Processes and plots the COVID data 
@@ -142,135 +165,65 @@ def process_covid_data(
     covid_data
         The COVID data. This can be the number of cases, deaths or recoveries over time
         per country
-    get_daily_change
-        Whether to convert the data to daily changes (rather than total figures)
-    get_rolling_average
-        Whether to get a rolling average (which smooths out the data)
-    normalise_by_population
-        Whether to normalise the data per country by the population count
-    num_rolling_average_days
-        The number of days for which the rolling average should be calculated
-    num_presort_countries
-        If this argument is given, the data will be pre-sorted before normalising the
-        data by the population count. This avoids the distortion of the data by smaller
-        countries.
+    processing_config
+        A dataclass which holds the config for processing the data
     """
-    covid_data = preprocess_covid_data(covid_data)
-
-    if get_daily_change:
+    if processing_config.get_daily_change:
         covid_data = calculate_daily_changes(covid_data)
-    if get_rolling_average:
-        covid_data = calculate_rolling_average(covid_data, num_rolling_average_days)
-    if num_presort_countries:
-        covid_data = sort_data_ascending(covid_data)[:num_presort_countries]
-
-    if normalise_by_population:
+    if processing_config.get_rolling_average:
+        covid_data = calculate_rolling_average(
+            covid_data,
+            processing_config.num_rolling_average_days,
+        )
+    if processing_config.num_presort_countries:
+        covid_data = (
+            sort_data_ascending(covid_data)[:processing_config.num_presort_countries]
+        )
+    if processing_config.threshold:
+        covid_data = covid_data[covid_data > processing_config.threshold]
+    if processing_config.normalise_by_population:
         population_data = extract_matching_population_data(covid_data)
         covid_data = normalise_by_population_count(covid_data, population_data)
+    if processing_config.country_set:
+        covid_data = covid_data[covid_data.index.isin(processing_config.country_set)]
     covid_data = sort_data_ascending(covid_data)
     return covid_data
 
 
-def adjust_for_time_differences(
-    covid_data: pd.DataFrame,
-    threshold: int,
-    covid_data_type: str,
-    get_daily_change: bool = True,
-    get_rolling_average: bool = True,
-    normalise_by_population: bool = True,
-    num_presort_countries: int = 20,
-    num_rolling_average_days: int = 7,
-    country_set: Optional[List[str]] = None,
-):
-    """
-    Adjusts the COVID data for time differences between countries. For example, the data
-    may be specified relative to the 10th infection in each country. This enables easier
-    comparisons between countries without having a distortion due to differences in the
-    timing of the virus spread.
-
-    Parameters
-    ----------
-    covid_data
-        The COVID data
-    threshold
-        The threshold used to adjust the data. If this is 10, the data will be
-        normalised relative to the 10th death/infection/recovery
-    covid_data_type
-        Whether the data relates to deaths, recoveries or infections
-    get_daily_change
-        Whether to convert the data to daily changes (rather than total figures)
-    get_rolling_average
-        Whether to get a rolling average (which smooths out the data)
-    normalise_by_population
-        Whether to normalise the data per country by the population count
-    num_presort_countries
-        If this argument is given, the data will be pre-sorted before normalising the
-        data by the population count. This avoids the distortion of the data by smaller
-        countries.
-    num_rolling_average_days
-        The number of days for which the rolling average should be calculated
-    country_set
-        An optional list of countries that should be displayed
-    """
-    covid_data = preprocess_covid_data(covid_data)
-
-    if get_daily_change:
-        covid_data = calculate_daily_changes(covid_data)
-    if get_rolling_average:
-        covid_data = calculate_rolling_average(covid_data, num_rolling_average_days)
-    if num_presort_countries:
-        covid_data = sort_data_ascending(covid_data)[:num_presort_countries]
-
-    adjusted_data = covid_data[covid_data > threshold]
-    if normalise_by_population:
-        population_data = extract_matching_population_data(adjusted_data)
-        adjusted_data = normalise_by_population_count(adjusted_data, population_data)
-    if country_set:
-        adjusted_data = adjusted_data[adjusted_data.index.isin(country_set)]
-    if num_presort_countries:
-        adjusted_data = sort_data_ascending(adjusted_data)[:num_presort_countries]
-
-    # Plot the data
-    figure = go.Figure()
-    for country in adjusted_data.index:
-        country_data = adjusted_data.loc[country].dropna()
-        figure.add_trace(go.Scatter(
-            x=list(range(len(country_data.index))),
-            y=country_data,
-            name=country,
-        ))
-    y_axis_title = construct_y_axis_title(
-        covid_data_type,
-        get_daily_change,
-        get_rolling_average,
-        normalise_by_population,
-        num_rolling_average_days,
-    )
-    singular_covid_data_type = inflect_engine.singular_noun(covid_data_type)
-    figure.update_xaxes(
-        title={'text': f'Days since {threshold}th {singular_covid_data_type}'}
-    )
-    figure.update_yaxes(title={'text': y_axis_title})
-    figure.show()
-
-
-def get_country_data(country_name: str) -> go.Figure:
+def get_country_data(
+    covid_data: LatestCovidData,
+    country_name: str,
+    processing_config: ProcessingConfigHolder,
+) -> go.Figure:
     """
     Gets the COVID data for a particular country
 
     Parameters
     ----------
+    covid_data
+        A dataclass holding the latest COVID data
     country_name
         The name of the country for which to return the COVID data
+    processing_config
+        A dataclass which holds the config for processing the data
 
     Returns
     -------
     go.Figure
         A plotly graph of the data for the country
     """
-    deaths_data = process_covid_data(fetch_latest_deaths_data())
-    cases_data = process_covid_data(fetch_latest_cases_data())
-    recovered_data = process_covid_data(fetch_latest_recovered_data())
+    deaths_data = process_covid_data(
+        covid_data.deaths_data,
+        processing_config,
+    )
+    cases_data = process_covid_data(
+        covid_data.cases_data,
+        processing_config,
+    )
+    recovered_data = process_covid_data(
+        covid_data.recovered_data,
+        processing_config,
+    )
 
     figure = go.Figure()
     data_labels = ['Deaths', 'Cases', 'Recoveries']
@@ -282,4 +235,9 @@ def get_country_data(country_name: str) -> go.Figure:
             y=country_data,
             name=label,
         ))
+    y_axis_title = construct_y_axis_title(
+        'deaths, infections and cases',
+        processing_config,
+    )
+    figure.update_layout(title={'text': y_axis_title})
     return figure

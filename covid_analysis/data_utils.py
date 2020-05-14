@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 from functools import lru_cache
+from typing import Union
 
 import pandas as pd
 
@@ -75,6 +77,16 @@ def preprocess_covid_data(data: pd.DataFrame) -> pd.DataFrame:
     return grouped_data
 
 
+@dataclass
+class LatestCovidData:
+    """
+    A class holding the latest COVID cases, deaths and recoveries data
+    """
+    cases_data: pd.DataFrame = preprocess_covid_data(fetch_latest_cases_data())
+    deaths_data: pd.DataFrame = preprocess_covid_data(fetch_latest_deaths_data())
+    recovered_data: pd.DataFrame = preprocess_covid_data(fetch_latest_recovered_data())
+
+
 @lru_cache(maxsize=1)
 def fetch_population_data() -> pd.DataFrame:
     """
@@ -111,7 +123,9 @@ def fetch_population_data() -> pd.DataFrame:
     return population_data
 
 
-def extract_matching_population_data(covid_data: pd.DataFrame) -> pd.DataFrame:
+def extract_matching_population_data(
+    covid_data: Union[pd.DataFrame, pd.Series],
+) -> Union[pd.DataFrame, pd.Series]:
     """
     Filters the population data so that it only includes the data for countries which
     are present in the COVID data
@@ -123,10 +137,18 @@ def extract_matching_population_data(covid_data: pd.DataFrame) -> pd.DataFrame:
 
     Returns
     -------
-    pd.DataFrame
+    Union[pd.DataFrame, pd.Series]
         The filtered population data
     """
     population_data = fetch_population_data()
+    if isinstance(covid_data, pd.Series):
+        return (
+            population_data[
+                population_data['Country Name'] == covid_data.name
+            ]['2018']
+            .values[0]
+        )
+
     population_data = (
         population_data[population_data['Country Name'].isin(covid_data.index.unique())]
     )
