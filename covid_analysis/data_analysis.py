@@ -86,6 +86,12 @@ def plot_data_per_country(
     go.Figure
         A plot of the COVID data
     """
+    if processing_config.covid_data_type == 'tests':
+        data = data[:num_countries]
+        data['first_nonzero_index'] = pd.to_datetime((data >= 0).idxmax(1))
+        data = data.sort_values('first_nonzero_index')
+        data = data.drop('first_nonzero_index', axis=1)
+
     figure = go.Figure()
     for country in data.index[:num_countries]:
         country_data = data.loc[country].dropna()

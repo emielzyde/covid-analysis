@@ -54,6 +54,7 @@ class MultipleCountryDataForm(CountryDataFormatForm):
         ('deaths', 'Deaths'),
         ('recoveries', 'Recoveries'),
         ('active cases', 'Active cases'),
+        ('tests', 'Tests'),
     ]
     data_type = RadioField(
         'Type of data',

@@ -4,6 +4,8 @@ from typing import Union
 
 import pandas as pd
 
+from .auxiliary_data_analysis import get_testing_data
+
 country_name_mapper = {
     'United States': 'US',
     'Russian Federation': 'Russia',
@@ -21,6 +23,9 @@ country_name_mapper = {
     'Lao PDR': 'Laos',
     'Yemen, Rep.': 'Yemen',
     'Myanmar': 'Burma',
+    'Congo': 'Congo (Brazzaville)',
+    'Democratic Republic of Congo': 'Congo (Kinshasa)',
+    'Cape Verde': 'Cabo Verde',
 }
 
 data_to_drop = [
@@ -86,6 +91,7 @@ class LatestCovidData:
     deaths_data: pd.DataFrame = preprocess_covid_data(fetch_latest_deaths_data())
     recovered_data: pd.DataFrame = preprocess_covid_data(fetch_latest_recovered_data())
     active_data: pd.DataFrame = cases_data - (deaths_data + recovered_data)
+    testing_data: pd.DataFrame = get_testing_data()
 
 
 @lru_cache(maxsize=1)
