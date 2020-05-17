@@ -7,6 +7,13 @@
         <p>
             {{ form.country.label }}<br>
             {{ form.country(size=15) }}
+        <br><br>
+        {% for subfield in form.analysis_type %}
+            <tr>
+                <td>{{ subfield }}</td>
+                <td>{{ subfield.label }}</td>
+            </tr>
+        {% endfor %}
         <p>{{ form.submit() }}</p>
     </form>
 {% endblock %}

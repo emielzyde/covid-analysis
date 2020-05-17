@@ -19,6 +19,14 @@ class CountrySelectionForm(FlaskForm):
     countries = get_available_countries()
     country_choices = [tuple([country, country]) for country in countries]
     country = SelectField('Country', choices=country_choices)
+    analysis_type = RadioField(
+        'Type of analysis',
+        choices=[
+            ('cases', 'Deaths, infections and recoveries'),
+            ('mobility', 'Mobility and government response data'),
+        ],
+        default='cases'
+    )
     submit = SubmitField('Submit selection!')
 
 
