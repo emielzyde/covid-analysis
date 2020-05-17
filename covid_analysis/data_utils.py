@@ -1,10 +1,11 @@
+import datetime as dt
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Union
 
 import pandas as pd
 
-from .auxiliary_data_analysis import get_testing_data
+TESTING_VAR = 'total_tests'
 
 country_name_mapper = {
     'United States': 'US',
@@ -59,6 +60,36 @@ def fetch_latest_recovered_data():
         'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19'
         '_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv',
     )
+
+
+@lru_cache(maxsize=1)
+def get_testing_data():
+    """
+    Loads the testing data from 'Our World in Data'. Any missing dates in the data are
+    filled by using the last available figure
+
+    Returns
+    -------
+    pd.DataFrame
+        The processed testing data
+    """
+    testing_data = pd.read_csv(
+        'https://covid.ourworldindata.org/data/owid-covid-data.csv'
+    )
+    testing_data = testing_data[['location', 'date', TESTING_VAR]]
+    testing_data = testing_data.melt(
+        id_vars=['location', 'date'],
+        value_vars=TESTING_VAR,
+    )
+    testing_data = testing_data.set_index(['location', 'date', 'variable'])['value']
+    testing_data = testing_data.unstack(level=1).droplevel(-1)
+    testing_data = testing_data.dropna(axis=0, how='all')
+    testing_data.columns = [
+        dt.datetime.strptime(date, '%Y-%m-%d').strftime('%-m/%-d/%y')
+        for date in testing_data.columns
+    ]
+    testing_data = testing_data.fillna(method='ffill', axis=1)
+    return testing_data
 
 
 def preprocess_covid_data(data: pd.DataFrame) -> pd.DataFrame:
@@ -121,8 +152,7 @@ def fetch_population_data() -> pd.DataFrame:
     )
     population_data['Country Name'] = (
         population_data['Country Name']
-        .
-        apply(lambda country_name: country_name_mapper.get(country_name, country_name))
+        .apply(lambda country_name: country_name_mapper.get(country_name, country_name))
     )
     # Get the latest data (2018) and convert to millions
     population_data = population_data[['Country Name', '2018']]
