@@ -24,6 +24,7 @@ class CountrySelectionForm(FlaskForm):
         choices=[
             ('cases', 'Deaths, infections and recoveries'),
             ('mobility', 'Mobility and government response data'),
+            ('weekends', 'Weekend effect data'),
         ],
         default='cases'
     )
@@ -55,7 +56,7 @@ class MultipleCountryDataForm(CountryDataFormatForm):
     adjust_for_time_diff = RadioField(
         'Adjust for time differences',
         choices=YES_NO_CHOICES,
-        default='Yes',
+        default='No',
     )
     types_of_data = [
         ('infections', 'Infections'),
