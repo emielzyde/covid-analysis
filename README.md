@@ -26,7 +26,7 @@ weekends
 
 The code also allows the user to select various features about the data to be displayed.
 For example, users can choose to have the data normalised by the population and can
-choose to see rolling averages or daily changes. For the `peak_predictions\` page, 
+choose to see rolling averages or daily changes. For the `/peak_predictions/` page, 
 the countries for which to predict the peaks can also be selected.
 
 ### Data sources 
