@@ -49,10 +49,10 @@ def get_mobility_data(mobility_data_file_path: str) -> pd.DataFrame:
         )
     )
     mobility_data = (
-        mobility_data
+        mobility_data.drop_duplicates()
         .set_index(['country_region', 'variable', 'date'])['value']
-        .unstack()
     )
+    mobility_data = mobility_data[~mobility_data.index.duplicated()].unstack()
     mobility_data.columns = [
         dt.datetime.strptime(date, '%Y-%m-%d').strftime('%-m/%-d/%y')
         for date in mobility_data.columns
@@ -113,7 +113,7 @@ class AuxiliaryDataHolder:
     government_response_data = get_government_response_data()
     mobility_data = get_mobility_data(
         'https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv?'
-        'cachebust=57b4ac4fc40528e2'
+        'cachebust=d09f7f6f428c6783'
     )
 
 
@@ -144,8 +144,8 @@ def process_stringency_data(
     stringency_data = (
         government_data[government_data.index.get_level_values(-1) == 'StringencyIndex']
         .droplevel(-1)
-        .unstack()
     )
+    stringency_data = stringency_data[~stringency_data.index.duplicated()].unstack()
     stringency_data = stringency_data.reindex(
         sorted(stringency_data.columns, key=pd.to_datetime),
         axis=1,

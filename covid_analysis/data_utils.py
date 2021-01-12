@@ -139,7 +139,7 @@ def fetch_population_data() -> pd.DataFrame:
         The processed World Bank population data
     """
     population_data = pd.read_csv(
-        '/Users/emielzyde/Downloads/API_SP/API_SP.POP.TOTL_DS2_en_csv_v2_988606.csv'
+        '/Users/emielzyde/Downloads/API_SP.POP.TOTL_DS2_en_csv_v3_988606.csv'
     )
 
     # Apply processing to the country names
